@@ -48,6 +48,7 @@ services:
     container_name: lb
     hostname: lb.crdb.io
     image: timveil/dynamic-haproxy:latest
+    platform: linux/amd64
     ports:
       - "26257:26257"
       - "9090:9090"
