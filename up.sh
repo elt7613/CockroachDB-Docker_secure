@@ -12,7 +12,6 @@ sleep 5
 
 docker compose start roach-1
 docker compose start roach-2
-docker compose start lb
 
 sleep 5
 
