@@ -47,9 +47,6 @@ services:
       - roach-cert
       - roach-0
 
-  # Removed problematic lb service since it's only available for ARM64
-  # Direct access is now available through roach-0
-
   roach-init:
     container_name: roach-init
     hostname: roach-init
@@ -65,5 +62,5 @@ services:
     volumes:
       - certs:/certs:ro
     depends_on:
-      - lb
+      - roach-0
       - roach-cert
