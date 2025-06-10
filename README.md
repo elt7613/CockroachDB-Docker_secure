@@ -39,3 +39,10 @@ docker cp roach-cert:/.cockroach-certs/client.root.crt .
 docker cp roach-cert:/.cockroach-certs/client.root.key .
 docker cp roach-cert:/.cockroach-certs/client.root.key.pk8 .
 ```
+    
+# **Production Deployment** → **[📁 production/](./production/)**
+Distributed cluster across multiple VMs for production environments.
+- 3-node cluster on separate virtual machines
+- High availability with automatic failover
+- TLS security with auto-generated certificates
+- See [Production README](./production/README.md) for full setup guide

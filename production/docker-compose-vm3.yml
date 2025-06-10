@@ -1,0 +1,26 @@
+volumes:
+  certs:
+
+services:
+
+  roach-cert:
+    container_name: roach-cert
+    hostname: roach-cert
+    image: timveil/cockroachdb-dynamic-certs:latest
+    volumes:
+      - certs:/.cockroach-certs
+    environment:
+      - NODE_ALTERNATIVE_NAMES=34.46.203.113,34.133.173.136,34.55.149.0,localhost
+
+  roach-2:
+    container_name: roach-2
+    hostname: 34.55.149.0
+    image: cockroachdb/cockroach:latest
+    command: start --cluster-name=prod-secure --logtostderr=WARNING --log-file-verbosity=WARNING --certs-dir=/certs --listen-addr=0.0.0.0:26257 --advertise-addr=34.55.149.0:26257 --join=34.46.203.113:26257,34.133.173.136:26257,34.55.149.0:26257
+    ports:
+      - "26257:26257"
+      - "9090:8080"
+    volumes:
+      - certs:/certs:ro
+    depends_on:
+      - roach-cert 
