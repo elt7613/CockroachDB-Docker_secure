@@ -64,9 +64,17 @@ production/
 ├── start-cluster.sh          # Complete cluster startup guide
 ├── status.sh                 # Cluster status checker
 ├── apply_license.sh          # Enterprise license application
-├── down.sh                   # Shutdown script (universal)
+├── down.sh                   # Shutdown options (universal)
+├── down-vm1.sh               # VM 1 shutdown script
+├── down-vm2.sh               # VM 2 shutdown script
+├── down-vm3.sh               # VM 3 shutdown script
+├── shutdown-cluster.sh       # Guided cluster shutdown
+├── prune.sh                  # Cleanup options (universal)
+├── prune-vm1.sh              # VM 1 cleanup script
+├── prune-vm2.sh              # VM 2 cleanup script
+├── prune-vm3.sh              # VM 3 cleanup script
 ├── test-failover.sh          # Fault tolerance testing
-└── prune.sh                  # Cleanup script (universal)
+└── README.md                 # This documentation
 ```
 
 ## 🚀 Quick Start (Recommended)
@@ -142,6 +150,44 @@ docker compose -f docker-compose-vm1.yml down
 postgresql://test:password@34.46.203.113:26257,34.133.173.136:26257,34.55.149.0:26257/test?sslmode=require
 ```
 Applications automatically failover to available nodes.
+
+## 🛑 Shutdown & Cleanup
+
+### **Individual VM Shutdown**
+```bash
+# On each respective VM:
+./down-vm1.sh    # VM 1 (Bootstrap node)
+./down-vm2.sh    # VM 2 
+./down-vm3.sh    # VM 3
+```
+
+### **Guided Cluster Shutdown**
+```bash
+# Run on VM 1 for guided shutdown:
+./shutdown-cluster.sh
+```
+
+### **Recommended Shutdown Order**
+1. **VM 2**: `./down-vm2.sh` (Worker node)
+2. **VM 3**: `./down-vm3.sh` (Worker node)  
+3. **VM 1**: `./down-vm1.sh` (Bootstrap node - shutdown last)
+
+### **Docker Cleanup (Optional)**
+```bash
+# On each respective VM:
+./prune-vm1.sh    # Clean VM 1 resources
+./prune-vm2.sh    # Clean VM 2 resources
+./prune-vm3.sh    # Clean VM 3 resources
+```
+
+### **Quick Reference**
+```bash
+# Show shutdown options
+./down.sh
+
+# Show cleanup options  
+./prune.sh
+```
 
 ## 🔧 Prerequisites
 
