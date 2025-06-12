@@ -39,10 +39,10 @@ fi
 
 echo ""
 echo "🌐 Admin UI Access:"
-echo "VM 1: https://34.46.203.113:9090"
+echo "VM 1: https://34.55.149.0:9090"
 echo "VM 2: https://34.133.173.136:9090"
-echo "VM 3: https://34.55.149.0:9090"
+echo "VM 3: https://34.46.203.113:9090"
 
 echo ""
 echo "🔗 Connection String:"
-echo "postgresql://test:password@34.46.203.113:26257,34.133.173.136:26257,34.55.149.0:26257/test?sslmode=require" 
+echo "postgresql://test:password@34.55.149.0:26257,34.133.173.136:26257,34.46.203.113:26257/test?sslmode=require" 
