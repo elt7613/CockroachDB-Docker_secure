@@ -61,9 +61,87 @@ production/
 ├── up-vm1.sh                 # VM 1 startup script
 ├── up-vm2.sh                 # VM 2 startup script
 ├── up-vm3.sh                 # VM 3 startup script
+├── start-cluster.sh          # Complete cluster startup guide
+├── status.sh                 # Cluster status checker
+├── apply_license.sh          # Enterprise license application
 ├── down.sh                   # Shutdown script (universal)
+├── test-failover.sh          # Fault tolerance testing
 └── prune.sh                  # Cleanup script (universal)
 ```
+
+## 🚀 Quick Start (Recommended)
+
+### **Option 1: Guided Cluster Startup**
+```bash
+# On VM 1, run the guided startup script:
+./start-cluster.sh
+```
+This script will guide you through starting all nodes and initializing the cluster.
+
+### **Option 2: Manual Startup**
+```bash
+# On VM 1 (Bootstrap):
+./up-vm1.sh
+
+# On VM 2:
+./up-vm2.sh
+
+# On VM 3:
+./up-vm3.sh
+
+# Back on VM 1, initialize cluster:
+docker compose -f docker-compose-vm1.yml start roach-init
+```
+
+### **Check Cluster Status**
+```bash
+./status.sh
+```
+
+### **Apply Enterprise License**
+```bash
+./apply_license.sh
+```
+
+### **Test Fault Tolerance**
+```bash
+./test-failover.sh
+```
+
+## 🛡️ Fault Tolerance & High Availability
+
+### **How It Works**
+- **Full Join Configuration**: Each node knows about ALL other nodes (`--join=VM1,VM2,VM3`)
+- **Gossip Network**: Once started, nodes communicate directly with each other
+- **Majority Consensus**: Cluster operates as long as 2/3 nodes are available
+- **Automatic Recovery**: Failed nodes automatically rejoin when restarted
+
+### **Failure Scenarios**
+
+| Scenario | Result | Admin UI Access | Data Operations |
+|----------|---------|-----------------|-----------------|
+| **1 VM Down** | ✅ Cluster operational | ✅ Via remaining VMs | ✅ Full read/write |
+| **2 VMs Down** | ⚠️ Read-only mode | ✅ Via remaining VM | ⚠️ Read-only |
+| **All VMs Down** | ❌ Cluster offline | ❌ No access | ❌ No operations |
+
+### **Testing Fault Tolerance**
+```bash
+# Test cluster resilience
+./test-failover.sh
+
+# Simulate VM1 failure
+docker compose -f docker-compose-vm1.yml down
+# VM2 & VM3 continue operating
+
+# Recovery
+./up-vm1.sh  # Node automatically rejoins
+```
+
+### **Multi-Connection String**
+```
+postgresql://test:password@34.46.203.113:26257,34.133.173.136:26257,34.55.149.0:26257/test?sslmode=require
+```
+Applications automatically failover to available nodes.
 
 ## 🔧 Prerequisites
 
