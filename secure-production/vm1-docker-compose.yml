@@ -38,11 +38,6 @@ services:
     networks:
       - cockroach-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "ls -la /.cockroach-certs/ca.crt || exit 1"]
-      interval: ${HEALTH_CHECK_INTERVAL}
-      timeout: ${HEALTH_CHECK_TIMEOUT}
-      retries: ${HEALTH_CHECK_RETRIES}
 
   # Primary CockroachDB node (VM1)
   roach-0:
@@ -71,8 +66,7 @@ services:
     networks:
       - cockroach-network
     depends_on:
-      roach-cert:
-        condition: service_healthy
+      - roach-cert
     restart: unless-stopped
     deploy:
       resources:
@@ -82,12 +76,6 @@ services:
         reservations:
           memory: ${MEMORY_RESERVATION}
           cpus: '${CPU_RESERVATION}'
-    healthcheck:
-      test: ["CMD-SHELL", "/cockroach/cockroach node status --certs-dir=/certs --host=localhost:${COCKROACH_PORT} --format=table || exit 1"]
-      interval: ${HEALTH_CHECK_INTERVAL}
-      timeout: ${HEALTH_CHECK_TIMEOUT}
-      retries: ${HEALTH_CHECK_RETRIES}
-      start_period: ${HEALTH_CHECK_START_PERIOD}
     environment:
       - COCKROACH_CHANNEL=official-docker
 
@@ -109,8 +97,8 @@ services:
     networks:
       - cockroach-network
     depends_on:
-      roach-0:
-        condition: service_healthy
+      - roach-0
+      - roach-cert
     restart: "no"  # Only run once to initialize
     deploy:
       resources:
