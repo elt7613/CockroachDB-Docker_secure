@@ -90,8 +90,8 @@ services:
     networks:
       - cockroach-network
     depends_on:
-      roach-1:
-        condition: service_healthy
+      - roach-1
+      - roach-cert
     restart: unless-stopped
     deploy:
       resources:
