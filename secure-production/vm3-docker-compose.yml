@@ -26,15 +26,14 @@ services:
     hostname: roach-cert
     image: ${CERT_IMAGE}
     volumes:
-      - certs-vm3:/certs
+      - certs-vm3:/.cockroach-certs
     environment:
       - NODE_ALTERNATIVE_NAMES=${VM1_IP},${VM2_IP},${VM3_IP},${NODE_ALTERNATIVE_NAMES_BASE}
-      - COCKROACH_CERTS_DIR=/certs
     networks:
       - cockroach-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "ls -la /certs/ca.crt || exit 1"]
+      test: ["CMD-SHELL", "ls -la /.cockroach-certs/ca.crt || exit 1"]
       interval: ${HEALTH_CHECK_INTERVAL}
       timeout: ${HEALTH_CHECK_TIMEOUT}
       retries: ${HEALTH_CHECK_RETRIES}
@@ -49,7 +48,7 @@ services:
       --cluster-name=${CLUSTER_NAME}
       --logtostderr=${LOG_LEVEL}
       --log-file-verbosity=${LOG_FILE_VERBOSITY}
-      --certs-dir=/certs
+      --certs-dir=/.cockroach-certs
       --store=path=/cockroach/cockroach-data
       --listen-addr=0.0.0.0:${COCKROACH_PORT}
       --advertise-addr=${VM3_IP}:${COCKROACH_PORT}
@@ -61,7 +60,7 @@ services:
       - "${COCKROACH_PORT}:${COCKROACH_PORT}"  # CockroachDB port
       - "${CONSOLE_PORT}:8080"    # DB Console port
     volumes:
-      - certs-vm3:/certs:ro
+      - certs-vm3:/.cockroach-certs:ro
       - data-vm3:/cockroach/cockroach-data
     networks:
       - cockroach-network
@@ -78,7 +77,7 @@ services:
           memory: ${MEMORY_RESERVATION}
           cpus: '${CPU_RESERVATION}'
     healthcheck:
-      test: ["CMD-SHELL", "/cockroach/cockroach node status --certs-dir=/certs --host=localhost:${COCKROACH_PORT} --format=table || exit 1"]
+      test: ["CMD-SHELL", "/cockroach/cockroach node status --certs-dir=/.cockroach-certs --host=localhost:${COCKROACH_PORT} --format=table || exit 1"]
       interval: ${HEALTH_CHECK_INTERVAL}
       timeout: ${HEALTH_CHECK_TIMEOUT}
       retries: ${HEALTH_CHECK_RETRIES}

@@ -32,15 +32,14 @@ services:
     hostname: roach-cert
     image: ${CERT_IMAGE}
     volumes:
-      - certs-vm1:/certs
+      - certs-vm1:/.cockroach-certs
     environment:
       - NODE_ALTERNATIVE_NAMES=${VM1_IP},${VM2_IP},${VM3_IP},${NODE_ALTERNATIVE_NAMES_BASE}
-      - COCKROACH_CERTS_DIR=/certs
     networks:
       - cockroach-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "ls -la /certs/ca.crt || exit 1"]
+      test: ["CMD-SHELL", "ls -la /.cockroach-certs/ca.crt || exit 1"]
       interval: ${HEALTH_CHECK_INTERVAL}
       timeout: ${HEALTH_CHECK_TIMEOUT}
       retries: ${HEALTH_CHECK_RETRIES}
@@ -55,7 +54,7 @@ services:
       --cluster-name=${CLUSTER_NAME}
       --logtostderr=${LOG_LEVEL}
       --log-file-verbosity=${LOG_FILE_VERBOSITY}
-      --certs-dir=/certs
+      --certs-dir=/.cockroach-certs
       --store=path=/cockroach/cockroach-data
       --listen-addr=0.0.0.0:${COCKROACH_PORT}
       --advertise-addr=${VM1_IP}:${COCKROACH_PORT}
@@ -67,7 +66,7 @@ services:
       - "${COCKROACH_PORT}:${COCKROACH_PORT}"  # CockroachDB port
       - "${CONSOLE_PORT}:8080"    # DB Console port
     volumes:
-      - certs-vm1:/certs:ro
+      - certs-vm1:/.cockroach-certs:ro
       - data-vm1:/cockroach/cockroach-data
     networks:
       - cockroach-network
@@ -84,7 +83,7 @@ services:
           memory: ${MEMORY_RESERVATION}
           cpus: '${CPU_RESERVATION}'
     healthcheck:
-      test: ["CMD-SHELL", "/cockroach/cockroach node status --certs-dir=/certs --host=localhost:${COCKROACH_PORT} --format=table || exit 1"]
+      test: ["CMD-SHELL", "/cockroach/cockroach node status --certs-dir=/.cockroach-certs --host=localhost:${COCKROACH_PORT} --format=table || exit 1"]
       interval: ${HEALTH_CHECK_INTERVAL}
       timeout: ${HEALTH_CHECK_TIMEOUT}
       retries: ${HEALTH_CHECK_RETRIES}
@@ -101,12 +100,12 @@ services:
       - COCKROACH_HOST=${VM1_IP}:${COCKROACH_PORT}
       - COCKROACH_INSECURE=false
       - COCKROACH_INIT=true
-      - COCKROACH_CERTS_DIR=/certs
+      - COCKROACH_CERTS_DIR=/.cockroach-certs
       - DATABASE_NAME=${DATABASE_NAME}
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
     volumes:
-      - certs-vm1:/certs:ro
+      - certs-vm1:/.cockroach-certs:ro
     networks:
       - cockroach-network
     depends_on:
