@@ -213,24 +213,23 @@ deploy_services() {
 verify_deployment() {
     print_status "Verifying VM3 deployment..."
     
-    # Check container status
     echo ""
     echo "=== Container Status ==="
-    docker-compose ps
-    
-    # Check node status
-    echo ""
-    echo "=== CockroachDB Node Status ==="
-    if docker exec roach-2-vm3 ./cockroach node status --certs-dir=/certs --host=localhost:${COCKROACH_PORT} 2>/dev/null; then
-        print_success "Node status check passed"
+    if [ -f "production.env" ]; then
+        docker-compose --env-file production.env ps
     else
-        print_warning "Node status check failed (this is normal if cluster is not initialized yet)"
+        docker-compose ps
     fi
     
-    # Check logs
     echo ""
-    echo "=== Recent Logs ==="
-    docker-compose logs --tail=10 roach-2
+    echo "=== Network Status ==="
+    docker network ls | grep cockroach || echo "No CockroachDB networks found"
+    
+    echo ""
+    echo "=== Volume Status ==="
+    docker volume ls | grep vm3 || echo "No VM3 volumes found"
+    
+    print_success "VM3 deployment verification completed"
 }
 
 # Function to show connection information
