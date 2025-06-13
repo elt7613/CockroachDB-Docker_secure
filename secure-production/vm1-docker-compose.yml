@@ -54,7 +54,7 @@ services:
       --cluster-name=${CLUSTER_NAME}
       --logtostderr=${LOG_LEVEL}
       --log-file-verbosity=${LOG_FILE_VERBOSITY}
-      --certs-dir=/.cockroach-certs
+      --certs-dir=/certs
       --store=path=/cockroach/cockroach-data
       --listen-addr=0.0.0.0:${COCKROACH_PORT}
       --advertise-addr=${VM1_IP}:${COCKROACH_PORT}
@@ -66,7 +66,7 @@ services:
       - "${COCKROACH_PORT}:${COCKROACH_PORT}"  # CockroachDB port
       - "${CONSOLE_PORT}:8080"    # DB Console port
     volumes:
-      - certs-vm1:/.cockroach-certs:ro
+      - certs-vm1:/certs:ro
       - data-vm1:/cockroach/cockroach-data
     networks:
       - cockroach-network
@@ -83,7 +83,7 @@ services:
           memory: ${MEMORY_RESERVATION}
           cpus: '${CPU_RESERVATION}'
     healthcheck:
-      test: ["CMD-SHELL", "/cockroach/cockroach node status --certs-dir=/.cockroach-certs --host=localhost:${COCKROACH_PORT} --format=table || exit 1"]
+      test: ["CMD-SHELL", "/cockroach/cockroach node status --certs-dir=/certs --host=localhost:${COCKROACH_PORT} --format=table || exit 1"]
       interval: ${HEALTH_CHECK_INTERVAL}
       timeout: ${HEALTH_CHECK_TIMEOUT}
       retries: ${HEALTH_CHECK_RETRIES}
@@ -100,12 +100,12 @@ services:
       - COCKROACH_HOST=${VM1_IP}:${COCKROACH_PORT}
       - COCKROACH_INSECURE=false
       - COCKROACH_INIT=true
-      - COCKROACH_CERTS_DIR=/.cockroach-certs
+      - COCKROACH_CERTS_DIR=/certs
       - DATABASE_NAME=${DATABASE_NAME}
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
     volumes:
-      - certs-vm1:/.cockroach-certs:ro
+      - certs-vm1:/certs:ro
     networks:
       - cockroach-network
     depends_on:
