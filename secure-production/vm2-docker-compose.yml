@@ -1,0 +1,113 @@
+# CockroachDB Secure Production Deployment - VM2 (Secondary Node)
+# This configuration is for a secondary node that joins the primary cluster
+# 
+# Note: The following variables from production.env are available but not used in this compose file:
+# CLIENT_IMAGE, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD (only needed for cluster initialization on VM1)
+
+version: '3.8'
+
+networks:
+  cockroach-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${DOCKER_SUBNET}
+
+volumes:
+  certs-vm2:
+    driver: local
+  data-vm2:
+    driver: local
+
+services:
+  # Certificate generation service
+  roach-cert:
+    container_name: roach-cert-vm2
+    hostname: roach-cert
+    image: ${CERT_IMAGE}
+    volumes:
+      - certs-vm2:/certs
+    environment:
+      - NODE_ALTERNATIVE_NAMES=${VM1_IP},${VM2_IP},${VM3_IP},${NODE_ALTERNATIVE_NAMES_BASE}
+      - COCKROACH_CERTS_DIR=/certs
+    networks:
+      - cockroach-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ls -la /certs/ca.crt || exit 1"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+
+  # Secondary CockroachDB node (VM2)
+  roach-1:
+    container_name: roach-1-vm2
+    hostname: vm2.cockroach.local
+    image: ${COCKROACH_IMAGE}
+    command: |
+      start 
+      --cluster-name=${CLUSTER_NAME}
+      --logtostderr=${LOG_LEVEL}
+      --log-file-verbosity=${LOG_FILE_VERBOSITY}
+      --certs-dir=/certs
+      --store=path=/cockroach/cockroach-data
+      --listen-addr=0.0.0.0:${COCKROACH_PORT}
+      --advertise-addr=${VM2_IP}:${COCKROACH_PORT}
+      --join=${VM1_IP}:${COCKROACH_PORT},${VM2_IP}:${COCKROACH_PORT},${VM3_IP}:${COCKROACH_PORT}
+      --cache=${CACHE_SIZE}
+      --max-sql-memory=${MAX_SQL_MEMORY}
+      --background
+    ports:
+      - "${COCKROACH_PORT}:${COCKROACH_PORT}"  # CockroachDB port
+      - "${CONSOLE_PORT}:8080"    # DB Console port
+    volumes:
+      - certs-vm2:/certs:ro
+      - data-vm2:/cockroach/cockroach-data
+    networks:
+      - cockroach-network
+    depends_on:
+      roach-cert:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT}
+          cpus: '${CPU_LIMIT}'
+        reservations:
+          memory: ${MEMORY_RESERVATION}
+          cpus: '${CPU_RESERVATION}'
+    healthcheck:
+      test: ["CMD-SHELL", "/cockroach/cockroach node status --certs-dir=/certs --host=localhost:${COCKROACH_PORT} --format=table || exit 1"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+      start_period: ${HEALTH_CHECK_START_PERIOD}
+    environment:
+      - COCKROACH_CHANNEL=official-docker
+
+  # Health monitoring service (optional)
+  health-monitor:
+    container_name: health-monitor-vm2
+    hostname: health-monitor
+    image: alpine:latest
+    command: |
+      sh -c '
+        apk add --no-cache curl &&
+        while true; do
+          echo "=== VM2 Health Check - $(date) ===" &&
+          curl -s -k https://${VM2_IP}:${CONSOLE_PORT}/health?ready=1 || echo "Node not ready" &&
+          sleep 300
+        done
+      '
+    networks:
+      - cockroach-network
+    depends_on:
+      roach-1:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: ${HEALTH_MONITOR_MEMORY}
+          cpus: '${HEALTH_MONITOR_CPU}' 

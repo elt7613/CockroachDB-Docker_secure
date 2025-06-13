@@ -1,0 +1,120 @@
+# CockroachDB Secure Production Deployment - VM1 (Primary Node)
+# This configuration is for the primary node that other nodes will join to
+#
+# All variables from production.env are used in this compose file:
+# VM IPs: VM1_IP, VM2_IP, VM3_IP
+# Images: COCKROACH_IMAGE, CERT_IMAGE, CLIENT_IMAGE  
+# Cluster: CLUSTER_NAME, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD
+# Resources: MEMORY_LIMIT, CPU_LIMIT, MEMORY_RESERVATION, CPU_RESERVATION, CACHE_SIZE, MAX_SQL_MEMORY
+# Network: DOCKER_SUBNET, COCKROACH_PORT, CONSOLE_PORT, NODE_ALTERNATIVE_NAMES_BASE
+# Health: HEALTH_CHECK_INTERVAL, HEALTH_CHECK_TIMEOUT, HEALTH_CHECK_RETRIES, HEALTH_CHECK_START_PERIOD
+# Logging: LOG_LEVEL, LOG_FILE_VERBOSITY
+
+version: '3.8'
+
+networks:
+  cockroach-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${DOCKER_SUBNET}
+
+volumes:
+  certs-vm1:
+    driver: local
+  data-vm1:
+    driver: local
+
+services:
+  # Certificate generation service
+  roach-cert:
+    container_name: roach-cert-vm1
+    hostname: roach-cert
+    image: ${CERT_IMAGE}
+    volumes:
+      - certs-vm1:/certs
+    environment:
+      - NODE_ALTERNATIVE_NAMES=${VM1_IP},${VM2_IP},${VM3_IP},${NODE_ALTERNATIVE_NAMES_BASE}
+      - COCKROACH_CERTS_DIR=/certs
+    networks:
+      - cockroach-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ls -la /certs/ca.crt || exit 1"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+
+  # Primary CockroachDB node (VM1)
+  roach-0:
+    container_name: roach-0-vm1
+    hostname: vm1.cockroach.local
+    image: ${COCKROACH_IMAGE}
+    command: |
+      start 
+      --cluster-name=${CLUSTER_NAME}
+      --logtostderr=${LOG_LEVEL}
+      --log-file-verbosity=${LOG_FILE_VERBOSITY}
+      --certs-dir=/certs
+      --store=path=/cockroach/cockroach-data
+      --listen-addr=0.0.0.0:${COCKROACH_PORT}
+      --advertise-addr=${VM1_IP}:${COCKROACH_PORT}
+      --join=${VM1_IP}:${COCKROACH_PORT},${VM2_IP}:${COCKROACH_PORT},${VM3_IP}:${COCKROACH_PORT}
+      --cache=${CACHE_SIZE}
+      --max-sql-memory=${MAX_SQL_MEMORY}
+      --background
+    ports:
+      - "${COCKROACH_PORT}:${COCKROACH_PORT}"  # CockroachDB port
+      - "${CONSOLE_PORT}:8080"    # DB Console port
+    volumes:
+      - certs-vm1:/certs:ro
+      - data-vm1:/cockroach/cockroach-data
+    networks:
+      - cockroach-network
+    depends_on:
+      roach-cert:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT}
+          cpus: '${CPU_LIMIT}'
+        reservations:
+          memory: ${MEMORY_RESERVATION}
+          cpus: '${CPU_RESERVATION}'
+    healthcheck:
+      test: ["CMD-SHELL", "/cockroach/cockroach node status --certs-dir=/certs --host=localhost:${COCKROACH_PORT} --format=table || exit 1"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+      start_period: ${HEALTH_CHECK_START_PERIOD}
+    environment:
+      - COCKROACH_CHANNEL=official-docker
+
+  # Cluster initialization service
+  roach-init:
+    container_name: roach-init-vm1
+    hostname: roach-init
+    image: ${CLIENT_IMAGE}
+    environment:
+      - COCKROACH_HOST=${VM1_IP}:${COCKROACH_PORT}
+      - COCKROACH_INSECURE=false
+      - COCKROACH_INIT=true
+      - COCKROACH_CERTS_DIR=/certs
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+    volumes:
+      - certs-vm1:/certs:ro
+    networks:
+      - cockroach-network
+    depends_on:
+      roach-0:
+        condition: service_healthy
+    restart: "no"  # Only run once to initialize
+    deploy:
+      resources:
+        limits:
+          memory: ${INIT_SERVICE_MEMORY}
+          cpus: '${INIT_SERVICE_CPU}' 
